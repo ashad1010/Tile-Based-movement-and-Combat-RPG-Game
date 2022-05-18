@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<link rel="stylesheet" type="text/css" href="styles.css">
+	<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+</head>
+<body>
+
+	<div id="container">
+		<div id="topRow">
+			<div id="Player1Stats" class="stats">
+				<span class="healthLabel">HEALTH</span><br>
+				<div class="hpBorder">
+					<div id="Player1Health" class="hpBar"></div>
+				</div>
+				<p id="Player1Moves">
+					<span class="healthLabel">MOVES</span><br>
+					<button onclick="blast()" class="buttonStyle">BLAST</button>
+				</p>
+				
+			</div>
+			<div id="Player1" class="chars">
+				<img src="P1-pixel.png">
+			</div>	
+			<div id="attack"></div>
+			<div id="enemyAttack"></div>
+			<div id="CPU" class="chars">
+				<img src="Luxray.png">
+			</div>
+			<div id="CPUStats" class="stats">
+				<span class="healthLabel">HEALTH</span><br>
+				<div class="hpBorder">
+					<div id="CPUHP" class="hpBar"></div>
+				</div>
+			</div>
+		</div>
+		<div id="bottomRow">
+			<h1>Welcome to the Battle Arena!</h1>
+			<p>You are facing off against the CPU!</p>
+			<button onclick="beginBattle()" class="buttonStyle">BEGIN BATTLE!</button>
+		</div>
+	</div>
+<script type="text/javascript" src="script.js"></script>
+</body>
+</html>

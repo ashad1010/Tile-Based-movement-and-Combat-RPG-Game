@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<!-- Principles of Software Project
+	 Names: Ashad Ahmed, Milan Samuel
+	 Student IDs: 100745913, 100757350 -->
+<head>
+
+
+
+<script type="text/javascript">
+
+//Canvas drawing Context variable
+var ctx = null;
+
+//Array that represents every tile in the game
+//0's: walls
+//1's: grass
+//2's: sand
+//3's: bushes
+//4's: water
+var Map = [
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+	0, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 0, 0,
+	0, 2, 2, 2, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 0, 0,
+	0, 2, 2, 2, 2, 1, 1, 1, 1, 3, 3, 2, 1, 2, 2, 2, 2, 2, 1, 0,
+	0, 1, 2, 2, 2, 2, 2, 1, 1, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1, 0,
+	0, 1, 1, 1, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 1, 1, 1, 1, 0,
+	0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 1, 1, 1, 1, 0,
+	0, 1, 1, 1, 1, 4, 4, 2, 2, 4, 4, 4, 4, 4, 2, 2, 2, 2, 1, 0,
+	0, 1, 1, 1, 1, 2, 4, 4, 4, 4, 3, 1, 1, 4, 1, 3, 3, 2, 1, 0,
+	0, 1, 2, 2, 2, 2, 1, 2, 1, 1, 1, 1, 1, 4, 1, 1, 3, 2, 1, 0,
+	0, 1, 2, 3, 3, 2, 1, 2, 1, 1, 1, 1, 1, 4, 4, 4, 4, 2, 4, 4,
+	0, 1, 2, 3, 3, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 0,
+	0, 1, 2, 3, 4, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 0, 1, 2, 1, 0,
+	0, 3, 2, 3, 4, 4, 1, 2, 2, 2, 2, 2, 2, 2, 1, 0, 1, 2, 1, 0,
+	0, 3, 2, 3, 4, 4, 3, 2, 1, 1, 1, 1, 1, 2, 1, 1, 1, 2, 3, 0,
+	0, 3, 2, 3, 4, 1, 3, 2, 1, 3, 1, 1, 1, 2, 1, 1, 1, 2, 3, 0,
+	0, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 1, 1, 2, 2, 2, 2, 2, 3, 0,
+	0, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 4, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+];
+
+//Dimensional specifications of the map - map and tile values must multiply to give overall canvas dimensions at the bottom
+var TileWidth = 40, TileHeight = 40;
+var MapWidth = 20, MapHeight = 20;
+
+//Frame rate variables
+var tNow = 0; 
+var FCounter = 0; 
+var LastSecond = 0;
+var LastTime = 0;
+
+//Checks to see if the player can walk on certain types of squares or not
+var floorTypes = { solid: 0, path: 1, water: 2 };
+
+//Character image to use as sprite (stored in directory folder)
+var char = new Image(); 
+char.src = 'P1-pixel.png'; 
+
+//Different types of terrain on the map for the character to navigate through
+var tileTypes = {
+	0 : { colour:"#685b48", floor:floorTypes.solid	},
+	1 : { colour:"#5aa457", floor:floorTypes.path	},
+	2 : { colour:"#e8bd7a", floor:floorTypes.path	},
+	3 : { colour:"#286625", floor:floorTypes.solid	},
+	4 : { colour:"#678fd9", floor:floorTypes.water	}
+};
+
+//tracks the keys pressed on the keyboard to initiate movement (arrow keys)
+var KeysPressed = {
+	37 : false,
+	38 : false,
+	39 : false,
+	40 : false
+};
+
+//Camera movement algorithm
+var viewport = {
+	screen		: [0,0],
+	startTile	: [0,0],
+	endTile		: [0,0],
+	offset		: [0,0],
+	update		: function(px, py) {
+		this.offset[0] = Math.floor((this.screen[0]/2) - px);
+		this.offset[1] = Math.floor((this.screen[1]/2) - py);
+
+		var tile = [ Math.floor(px/TileWidth), Math.floor(py/TileHeight) ];
+
+		this.startTile[0] = tile[0] - 1 - Math.ceil((this.screen[0]/2) / TileWidth);
+		this.startTile[1] = tile[1] - 1 - Math.ceil((this.screen[1]/2) / TileHeight);
+
+		if(this.startTile[0] < 0) { this.startTile[0] = 0; }
+		if(this.startTile[1] < 0) { this.startTile[1] = 0; }
+
+		this.endTile[0] = tile[0] + 1 + Math.ceil((this.screen[0]/2) / TileWidth);
+		this.endTile[1] = tile[1] + 1 + Math.ceil((this.screen[1]/2) / TileHeight);
+
+		if(this.endTile[0] >= MapWidth) { this.endTile[0] = MapWidth-1; }
+		if(this.endTile[1] >= MapHeight) { this.endTile[1] = MapHeight-1; }
+	}
+};
+
+//Character object
+var player = new Character();
+
+function Character()
+{
+	this.tileFrom	= [1,1];
+	this.tileTo		= [1,1];
+	this.timeMoved	= 0;
+	this.dimensions	= [30,30];
+	this.position	= [45,45];
+	this.delayMove	= 700;
+}
+Character.prototype.placeAt = function(x, y)
+{
+	this.tileFrom	= [x,y];
+	this.tileTo		= [x,y];
+	this.position	= [((TileWidth*x)+((TileWidth-this.dimensions[0])/2)),
+		((TileHeight*y)+((TileHeight-this.dimensions[1])/2))];
+};
+Character.prototype.processMovement = function(t)
+{
+	if(this.tileFrom[0]==this.tileTo[0] && this.tileFrom[1]==this.tileTo[1]) { return false; }
+
+	if((t-this.timeMoved)>=this.delayMove)
+	{
+		this.placeAt(this.tileTo[0], this.tileTo[1]);
+	}
+	else
+	{
+		this.position[0] = (this.tileFrom[0] * TileWidth) + ((TileWidth-this.dimensions[0])/2);
+		this.position[1] = (this.tileFrom[1] * TileHeight) + ((TileHeight-this.dimensions[1])/2);
+
+		if(this.tileTo[0] != this.tileFrom[0])
+		{
+			var diff = (TileWidth / this.delayMove) * (t-this.timeMoved);
+			this.position[0]+= (this.tileTo[0]<this.tileFrom[0] ? 0 - diff : diff);
+		}
+		if(this.tileTo[1] != this.tileFrom[1])
+		{
+			var diff = (TileHeight / this.delayMove) * (t-this.timeMoved);
+			this.position[1]+= (this.tileTo[1]<this.tileFrom[1] ? 0 - diff : diff);
+		}
+
+		this.position[0] = Math.round(this.position[0]);
+		this.position[1] = Math.round(this.position[1]);
+	}
+
+	return true;
+}
+Character.prototype.canMoveTo = function(x, y)
+{
+	if(x < 0 || x >= MapWidth || y < 0 || y >= MapHeight) { return false; }
+	if(tileTypes[Map[toIndex(x,y)]].floor!=floorTypes.path) { return false; }
+	return true;
+};
+Character.prototype.canMoveUp		= function() { return this.canMoveTo(this.tileFrom[0], this.tileFrom[1]-1); };
+Character.prototype.canMoveDown 	= function() { return this.canMoveTo(this.tileFrom[0], this.tileFrom[1]+1); };
+Character.prototype.canMoveLeft 	= function() { return this.canMoveTo(this.tileFrom[0]-1, this.tileFrom[1]); };
+Character.prototype.canMoveRight 	= function() { return this.canMoveTo(this.tileFrom[0]+1, this.tileFrom[1]); };
+
+Character.prototype.moveLeft	= function(t) { this.tileTo[0]-=1; this.timeMoved = t; };
+Character.prototype.moveRight	= function(t) { this.tileTo[0]+=1; this.timeMoved = t; };
+Character.prototype.moveUp		= function(t) { this.tileTo[1]-=1; this.timeMoved = t; };
+Character.prototype.moveDown	= function(t) { this.tileTo[1]+=1; this.timeMoved = t; };
+
+function toIndex(x, y)
+{
+	return((y * MapWidth) + x);
+}
+
+window.onload = function()
+{
+	ctx = document.getElementById('game').getContext("2d");
+	requestAnimationFrame(drawGame);
+	ctx.font = "bold 10pt sans-serif";
+
+	window.addEventListener("keydown", function(e) {
+		if(e.keyCode>=37 && e.keyCode<=40) { KeysPressed[e.keyCode] = true; }
+	});
+	window.addEventListener("keyup", function(e) {
+		if(e.keyCode>=37 && e.keyCode<=40) { KeysPressed[e.keyCode] = false; }
+	});
+
+	viewport.screen = [document.getElementById('game').width,
+		document.getElementById('game').height];
+};
+
+function drawGame()
+{
+	if(ctx==null) { return; }
+
+	var currentFrameTime = Date.now();
+	var timeElapsed = currentFrameTime - LastTime;
+
+	var sec = Math.floor(Date.now()/1000);
+	if(sec!=tNow)
+	{
+		tNow = sec;
+		LastSecond = FCounter;
+		FCounter = 1;
+	}
+	else { FCounter++; }
+
+	if(!player.processMovement(currentFrameTime))
+	{
+		if(KeysPressed[38] && player.canMoveUp())			{ player.moveUp(currentFrameTime); }
+		else if(KeysPressed[40] && player.canMoveDown())	{ player.moveDown(currentFrameTime); }
+		else if(KeysPressed[37] && player.canMoveLeft())	{ player.moveLeft(currentFrameTime); }
+		else if(KeysPressed[39] && player.canMoveRight())	{ player.moveRight(currentFrameTime); }
+	}
+
+	viewport.update(player.position[0] + (player.dimensions[0]/2),
+		player.position[1] + (player.dimensions[1]/2));
+
+	ctx.fillStyle = "#000000";
+	ctx.fillRect(0, 0, viewport.screen[0], viewport.screen[1]);
+
+	for(var y = viewport.startTile[1]; y <= viewport.endTile[1]; ++y)
+	{
+		for(var x = viewport.startTile[0]; x <= viewport.endTile[0]; ++x)
+		{
+			ctx.fillStyle = tileTypes[Map[toIndex(x,y)]].colour;
+
+			ctx.fillRect( viewport.offset[0] + (x*TileWidth), viewport.offset[1] + (y*TileHeight),
+				TileWidth, TileHeight);
+		}
+	}
+
+    ctx.fillStyle = "transparent";
+	ctx.drawImage(char, viewport.offset[0] + player.position[0], viewport.offset[1] + player.position[1],
+		player.dimensions[0], player.dimensions[1]);
+
+	ctx.fillStyle = "#ff0000";
+	ctx.fillText("FPS: " + LastSecond, 10, 20);
+
+	LastTime = currentFrameTime;
+	requestAnimationFrame(drawGame);
+}
+</script>
+
+</head>
+<body>
+
+<canvas id="game" width="800" height="800"></canvas>
+
+</body>
+</html>
